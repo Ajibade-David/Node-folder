@@ -3,6 +3,8 @@ const user = require("../models/user.model")
 const jwt = require("jsonwebtoken")
 const nodemailer = require("nodemailer")
 const crypto = require("crypto");
+const Book = require("../models/bookmodel");
+const { log } = require("console");
 
 
 const showWelcome = (req, res)=>{
@@ -81,7 +83,7 @@ const getDashboard = (req, res) =>{
     })
     console.log("I dey Work");
 }
-
+ 
 const SendEmail=(req,res)=>{
 
     const transporter = nodemailer.createTransport({
@@ -95,7 +97,7 @@ const SendEmail=(req,res)=>{
     let mailOptions = {
         from: 'davidajibade58@gmail.com', 
         to: "ajibaded550@gmail.com",
-        subject: "Hello ",
+        subject: "Hi",
         text: "Hello World",
         html: "<Lorm/>"
 
@@ -110,60 +112,49 @@ const SendEmail=(req,res)=>{
         }
     })
 }
-const ForgotPassword = async (req, res) => {
-    try {   
-      const { signEmail } = req.body;
-  
-      if (!signEmail) {
-        return res.status(400).send({ status: false, message: "Email address is required" });
+// Assuming you have a Mongoose model named 'Appointment' defined elsewhere
+
+
+
+const BookAppointment = async (req, res) => {
+  const { fullName, phoneNumber, age, dob, gender, address } = req.body;
+console.log(req.body);
+  const booking = new Book({ // Use the Book model to create a new booking
+    patientName: fullName,
+    patientPhoneNumber: phoneNumber,
+    dateOfBirth: dob,
+    gender: gender,
+    address: address,
+    status: "pending",
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+
+  try {
+    const result = await booking.save(); // Save the booking using the Book model
+    res.status(201).json(result); // Send a success response with the saved booking
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error occurred while saving the booking"); // Send an error response
+  }
+};
+
+
+const FetchBooking = async (req, res)=>{
+    try {
+        // Fetch all bookings from the database
+        const bookings = await Book.find();
+        
+        // Send the bookings as a JSON response
+        res.json(bookings);
+        console.log(bookings)
+      } catch (error) {
+        // Handle errors
+        res.status(500).json({ error: 'Internal server error' });
       }
+    
+}
+
+
   
-      // Find user by email
-      const existingUser = await user.findOne({ signEmail });
-  
-      if (!existingUser) {
-        return res.status(404).send({ status: false, message: "User not found" });
-      }
-  
-      // Generate reset token and set expiration time
-      const resetToken = crypto.randomBytes(20).toString("hex");
-      const resetPasswordToken = resetToken;
-      const resetPasswordExpires = Date.now() + 3600000; // Token expires in 1 hour
-  
-      existingUser.resetPasswordToken = resetPasswordToken;
-      existingUser.resetPasswordExpires = resetPasswordExpires;
-  
-      await existingUser.save();
-  
-      // Send password reset email
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: "davidajibade58@gmail.com", // Update with your email credentials
-          pass: "uagw dohu shpf mhix", // Update with your email password
-        },
-      });
-  
-      const mailOptions = {
-        from: "davidajibade58@gmail.com",
-        to: signEmail,
-        subject: "Password Reset",
-        text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n`
-          + `Please click on the following link, or paste this into your browser to complete the process:\n\n`
-          + `http://${req.headers.host}/reset/${resetPasswordToken}\n\n`
-          + `If you did not request this, please ignore this email and your password will remain unchanged.\n`,
-      };
-  
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error("Error sending password reset email:", error);
-          return res.status(500).send({ status: false, message: "Error sending password reset email" });
-        }
-        res.status(200).send({ status: true, message: "Password reset email sent successfully" });
-      });
-    } catch (error) {
-      console.error("Error initiating password reset:", error);
-      res.status(500).send({ status: false, message: "Error initiating password reset" });
-    }
-  };
-module.exports = {showWelcome, showRegister, signin, getDashboard, SendEmail, ForgotPassword}
+module.exports = {showWelcome, showRegister, signin, getDashboard, SendEmail, BookAppointment, FetchBooking  }
